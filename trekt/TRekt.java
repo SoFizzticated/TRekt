@@ -105,7 +105,10 @@ public class TRekt extends AdvancedRobot {
         return predictedPos;
     }
     
-    //
+    /*
+    Mueve el cañon del tanque en dirección de las coordenadas del objective y dispara.
+    con una potencia de firePower
+    */
     private void shoot(Point2D objective, double e_bearing, double e_distance, double firePower) {
         double predictedX = objective.getX();
         double predictedY = objective.getY();
