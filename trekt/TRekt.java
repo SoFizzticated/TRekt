@@ -20,8 +20,7 @@ public class TRekt extends AdvancedRobot {
     private double predictedY = 0.0;
     private double enemyX = 0.0;
     private double enemyY = 0.0;
-    private double predictedDistance = 0.0;
-    
+
     
     public void run() {  
         setColors(Color.green, Color.green, Color.black);
@@ -31,34 +30,22 @@ public class TRekt extends AdvancedRobot {
         setAdjustRadarForGunTurn(true);
         
         while(true) {  
-            /*if(getX() < getBattleFieldWidth()/4 || getX() > 3*getBattleFieldWidth()/4 || getY() < getBattleFieldHeight()/4 || getY() > 3*getBattleFieldHeight()/4)  {
+            if(getX() < getBattleFieldWidth()/4 || getX() > 3*getBattleFieldWidth()/4 || getY() < getBattleFieldHeight()/4 || getY() > 3*getBattleFieldHeight()/4)  {
                 setTurnRight(15);
             }
-            //System.out.println(getHeading());
-            //setTurnRight(15);
-            //turnRadarRight(30);
-            turnGunRight(30); 
-            setAhead(200);*/ 
+            setTurnRight(15);
+            setAhead(200);
             execute(); 
         }  
     }   
 
     public void onScannedRobot(ScannedRobotEvent e) { 
         setTurnRadarRight(2.0 * normalizeBearing(getHeading() + e.getBearing() - getRadarHeading()));
-        //setTurnGunRight(1.5 * normalizeBearing(getHeading() + e.getBearing() - getRadarHeading()));
-        //System.out.println("HEADING = " + e.getHeading());
-        //System.out.println("BEARING = " + e.getBearing());
         Point2D objective = predictPosition(e.getHeadingRadians(), e.getDistance(), e.getVelocity(), e.getBearingRadians(), 1);
-        shoot(objective, e.getBearing(), e.getDistance(), 1);
-        System.out.println("ENEMY X = " + objective.getX() + "    ENEMY Y = " + objective.getY());
-        
-        //setTurnGunRight();
-        //fire(1);
-                
+        shoot(objective, e.getBearing(), e.getDistance(), 1);                
     }  
     
     public void onHitByBullet(HitByBulletEvent e) {  
-        //turnLeft(180);
         setTurnRadarRight(Double.POSITIVE_INFINITY);
     }  
         
@@ -79,12 +66,15 @@ public class TRekt extends AdvancedRobot {
     }
 
     /*
-        Predice la futura posición del tanque rival y devuelve el angulo entre 
-        la posición incial detecta y la posición predecida.
-    
+        Predice la futura posición del tanque rival para el siguiente turno y 
+        devuelve un punto con sus coordenadas.
     */
     private Point2D predictPosition(double e_heading, double e_distance, double e_velocity, double e_bearing, double firePower) {
+        //bearing es el angulo(en radianes) en el cual se encuentra el tanque 
+        //rival, siendo 0 el norte, pi/2 el este, pi el sur y (2/3)*pi el oeste. 
         double bearing = getHeadingRadians() + e_bearing;
+        
+        //Obtención de las coordenadas del tanque rival a partir de trigonometria.
         enemyX = getX() + e_distance * Math.sin(bearing);
         enemyY = getY() + e_distance * Math.cos(bearing);
         
@@ -97,11 +87,14 @@ public class TRekt extends AdvancedRobot {
         double time = e_distance / bulletVelocity;
         
         //Distancia que habrá avanzado el tanque enemigo según su orientación.
-        predictedDistance = e_velocity * time;
+        double predictedDistance = e_velocity * time;
         
+        //Predicción del movimiento del tanque rival a partir de trigonometria.
         predictedX = enemyX + predictedDistance * Math.sin(e_heading);
         predictedY = enemyY + predictedDistance * Math.cos(e_heading);
         
+        //Corrige la predicción en caso de que las coordenadas predichas se salgan
+        //del rango del mapa.
         if(predictedX > getBattleFieldWidth()) predictedX = getBattleFieldWidth();
         else if(predictedX < 0) predictedX = 0;
         if(predictedY > getBattleFieldHeight()) predictedY = getBattleFieldHeight();
@@ -116,17 +109,15 @@ public class TRekt extends AdvancedRobot {
     private void shoot(Point2D objective, double e_bearing, double e_distance, double firePower) {
         double predictedX = objective.getX();
         double predictedY = objective.getY();
-        System.out.println("Predicted X = " + predictedX + "    Predicted Y = " + predictedY);
-        System.out.println("Enemy X = " + enemyX + "   Enemy Y = " + enemyY);
-
+        
+        //Angulo que hay entre la posición del tanque rival y su futura
+        //posición, tomando como centro la posición de nuestro tanque.
         double predictionAngle = Math.atan2(predictedY - getY(), predictedX - getX()) - Math.atan2(enemyY - getY(), enemyX - getX());
         predictionAngle = normalizeBearing(Math.toDegrees(-predictionAngle));
-        setTurnGunRight(normalizeBearing( -(getGunHeading() - (e_bearing + predictionAngle)) ));
-        //setTurnGunRight(normalizeBearing(getGunHeading() + predictionAngle));
-
-        fire(firePower);
         
-        //setTurnRadarRight(2 * normalizeBearing(getHeading() + e.getBearing() - getRadarHeading()));
+        //Posicionamiento del cañon apuntando a la posición predecida.
+        setTurnGunRight(normalizeBearing( Math.toDegrees(getHeadingRadians()) + e_bearing - Math.toDegrees(getGunHeadingRadians())  + predictionAngle ));
+        setFire(firePower);
     }
     
     
